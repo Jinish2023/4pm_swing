@@ -72,7 +72,7 @@ def scan_new_entries(symbol):
                 "stock name": symbol,
                 "entry_price": round(close[i], 2),
                 "stop_loss": round(initial_stop, 2),
-                "current_price": round(close[i], 2), # Initial state at signal generation
+                "current_price": round(close[i], 2),
             }
     except Exception:
         pass
@@ -85,7 +85,6 @@ def update_excel_tracker(new_signals):
 
     today_str = datetime.now().strftime("%Y-%m-%d")
     
-    # Load existing workbook or initialize a blank structure
     if os.path.exists(EXCEL_FILE):
         df_existing = pd.read_excel(EXCEL_FILE)
         start_sl = len(df_existing) + 1
@@ -117,12 +116,21 @@ def update_excel_tracker(new_signals):
     df_new = pd.DataFrame(rows_to_add)
     df_combined = pd.concat([df_existing, df_new], ignore_index=True)
     
-    # Save back to Excel
     df_combined.to_excel(EXCEL_FILE, index=False)
     print(f"Successfully updated {EXCEL_FILE} with {len(rows_to_add)} new entries.")
 
 def main():
-    universe = FALLBACK_UNIVERSE
+    if USE_FULL_NIFTY500:
+        try:
+            from src.universe import fetch_stock_universe
+            universe = fetch_stock_universe()
+            print(f"Loaded live NIFTY 500 list ({len(universe)} symbols).")
+        except Exception as e:
+            universe = FALLBACK_UNIVERSE
+            print(f"Using fallback universe due to: {e}")
+    else:
+        universe = FALLBACK_UNIVERSE
+
     print(f"Scanning {len(universe)} symbols...")
 
     buy_signals = []
