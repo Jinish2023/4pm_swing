@@ -3,14 +3,14 @@ name: Daily Strategy Scanner & Excel Updater
 on:
   schedule:
     - cron: '30 10 * * 1-5' # Runs Monday to Friday at 10:30 UTC (4:00 PM IST)
-  workflow_dispatch: # Allows manual runs from the GitHub Actions tab
+  workflow_dispatch: # Allows manual runs from the Actions tab
 
 jobs:
   run-scanner:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: write # Required to allow the token to commit changes back
+      contents: write # Required to commit changes back to the repo
 
     steps:
       - name: Checkout Repository
@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
       - name: Install Dependencies
         run: |
@@ -29,7 +28,7 @@ jobs:
 
       - name: Run Production Scanner Script
         run: |
-          python production/run_live_scanner.py
+          python 4pm_swing.py
 
       - name: Commit and Push Excel Updates
         uses: stefanzweifel/git-auto-commit-action@v5
