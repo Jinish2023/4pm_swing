@@ -70,15 +70,9 @@ def scan_new_entries(symbol):
         if np.isnan(trend_ma[i]) or np.isnan(fast_ma[i]) or np.isnan(df["ATR"].iloc[i]) or np.isnan(vol_sma20[i]):
             return None
 
-        # 1. Macro Regime Check (Price > 100 DMA)
-        if close[i] <= trend_ma[i]:
+        if close[i] <= trend_ma[i] or volume[i] <= vol_sma20[i]:
             return None
 
-        # 2. Volume Confirmation Filter (Volume > 20-day Volume SMA)
-        if volume[i] <= vol_sma20[i]:
-            return None
-
-        # 3. Setup Trigger: Touch & Bounce Only
         touch_and_bounce = (abs(fast_ma[i] - trend_ma[i]) / trend_ma[i] <= 0.015) and (fast_ma[i] >= fast_ma[i - 1])
 
         if touch_and_bounce:
@@ -101,14 +95,16 @@ def update_excel_tracker(new_signals):
 
     today_str = datetime.now().strftime("%Y-%m-%d")
     
+    columns = [
+        "serial no", "date", "stock name", "entry price", 
+        "stop loss", "current price", "profit/loss", "profit & loss %"
+    ]
+
     if os.path.exists(EXCEL_FILE):
         df_existing = pd.read_excel(EXCEL_FILE)
         start_sl = len(df_existing) + 1
     else:
-        df_existing = pd.DataFrame(columns=[
-            "serial no", "date", "stock name", "entry price", 
-            "stop loss", "current price", "profit/loss", "profit & loss %"
-        ])
+        df_existing = pd.DataFrame(columns=columns)
         start_sl = 1
 
     rows_to_add = []
@@ -130,7 +126,13 @@ def update_excel_tracker(new_signals):
         })
 
     df_new = pd.DataFrame(rows_to_add)
-    df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+    
+    # Avoid future concatenation warnings by filtering out empty frames
+    frames_to_concat = [df for df in [df_existing, df_new] if not df.empty]
+    if frames_to_concat:
+        df_combined = pd.concat(frames_to_concat, ignore_index=True)
+    else:
+        df_combined = pd.DataFrame(columns=columns)
     
     df_combined.to_excel(EXCEL_FILE, index=False)
     print(f"Successfully updated {EXCEL_FILE} with {len(rows_to_add)} new entries.")
@@ -157,7 +159,7 @@ def main():
         if res:
             buy_signals.append(res)
             print(f"[BUY SIGNAL] Found: {res['stock name']} @ Entry {res['entry_price']} | Stop: {res['stop_loss']}")
-        time.sleep(0.05)
+        time.sleep(0.02)
 
     print("=" * 60)
     print(f"Scan complete. Total Actionable Buy Signals: {len(buy_signals)}")
