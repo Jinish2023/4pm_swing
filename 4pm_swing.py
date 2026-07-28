@@ -20,13 +20,20 @@ FALLBACK_UNIVERSE = [
     "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "HINDUNILVR", "ITC",
     "SBIN", "BHARTIARTL", "KOTAKBANK", "LT", "AXISBANK", "BAJFINANCE",
     "ASIANPAINT", "MARUTI", "SUNPHARMA", "TITAN", "ULTRACEMCO", "WIPRO",
+    "NESTLEIND", "HCLTECH", "TATASTEEL", "POWERGRID", "NTPC",
+    "ONGC", "M&M", "ADANIENT", "JSWSTEEL", "GRASIM", "BAJAJFINSV",
+    "INDUSINDBK", "TECHM", "DRREDDY", "CIPLA", "DIVISLAB", "EICHERMOT",
+    "HEROMOTOCO", "BRITANNIA", "COALINDIA", "HINDALCO", "APOLLOHOSP", "BPCL",
+    "TATACONSUM", "TRENT", "DLF", "HAVELLS", "SIEMENS", "PIDILITIND",
 ]
+
 
 def _flatten_columns(df):
     if isinstance(df.columns, pd.MultiIndex):
         df = df.copy()
         df.columns = df.columns.get_level_values(0)
     return df
+
 
 def compute_atr(df, period=14):
     high = df["High"]
@@ -38,6 +45,7 @@ def compute_atr(df, period=14):
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     return tr.rolling(period).mean()
 
+
 def scan_new_entries(symbol):
     ticker = f"{symbol}.NS"
     try:
@@ -48,6 +56,7 @@ def scan_new_entries(symbol):
 
         df["DMA100"] = df["Close"].rolling(100).mean()
         df["EMA20"] = df["Close"].ewm(span=20, adjust=False).mean()
+        df["SMA20"] = df["Close"].rolling(20).mean()
         df["ATR"] = compute_atr(df, 14)
         df["VolSMA20"] = df["Volume"].rolling(20).mean()
 
@@ -61,9 +70,15 @@ def scan_new_entries(symbol):
         if np.isnan(trend_ma[i]) or np.isnan(fast_ma[i]) or np.isnan(df["ATR"].iloc[i]) or np.isnan(vol_sma20[i]):
             return None
 
-        if close[i] <= trend_ma[i] or volume[i] <= vol_sma20[i]:
+        # 1. Macro Regime Check (Price > 100 DMA)
+        if close[i] <= trend_ma[i]:
             return None
 
+        # 2. Volume Confirmation Filter (Volume > 20-day Volume SMA)
+        if volume[i] <= vol_sma20[i]:
+            return None
+
+        # 3. Setup Trigger: Touch & Bounce Only
         touch_and_bounce = (abs(fast_ma[i] - trend_ma[i]) / trend_ma[i] <= 0.015) and (fast_ma[i] >= fast_ma[i - 1])
 
         if touch_and_bounce:
@@ -77,6 +92,7 @@ def scan_new_entries(symbol):
     except Exception:
         pass
     return None
+
 
 def update_excel_tracker(new_signals):
     if not new_signals:
@@ -119,6 +135,7 @@ def update_excel_tracker(new_signals):
     df_combined.to_excel(EXCEL_FILE, index=False)
     print(f"Successfully updated {EXCEL_FILE} with {len(rows_to_add)} new entries.")
 
+
 def main():
     if USE_FULL_NIFTY500:
         try:
@@ -131,17 +148,22 @@ def main():
     else:
         universe = FALLBACK_UNIVERSE
 
-    print(f"Scanning {len(universe)} symbols...")
+    print(f"\n[PRODUCTION SCANNER] Scanning {len(universe)} symbols for Strategy B (Bounce + Vol Filter)...")
+    print("=" * 60)
 
     buy_signals = []
     for symbol in universe:
         res = scan_new_entries(symbol)
         if res:
             buy_signals.append(res)
-            print(f"[FOUND] {res['stock name']} | Entry: {res['entry_price']} | Stop: {res['stop_loss']}")
-        time.sleep(0.02)
+            print(f"[BUY SIGNAL] Found: {res['stock name']} @ Entry {res['entry_price']} | Stop: {res['stop_loss']}")
+        time.sleep(0.05)
+
+    print("=" * 60)
+    print(f"Scan complete. Total Actionable Buy Signals: {len(buy_signals)}")
 
     update_excel_tracker(buy_signals)
+
 
 if __name__ == "__main__":
     main()
