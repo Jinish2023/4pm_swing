@@ -1,11 +1,15 @@
 """
-Universe Loader for NIFTY 500 Stocks
-──────────────────────────────────────────────────────────────────────────
-Fetches the current Nifty 500 symbols dynamically for use in technical scanners.
+Stock universe — tries to pull the live NSE 500 list first (free CSV, no
+key). Falls back to a hardcoded liquid-stock list if that fetch fails
+(NSE's site is flaky for scripted requests without a browser session).
 """
+import io
+import requests
 import pandas as pd
 
-EMERGENCY_FALLBACK_UNIVERSE = [
+NIFTY500_CSV_URL = "https://nsearchives.nseindia.com/content/indices/ind_nifty500list.csv"
+
+FALLBACK_UNIVERSE = [
     "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "HINDUNILVR", "ITC",
     "SBIN", "BHARTIARTL", "KOTAKBANK", "LT", "AXISBANK", "BAJFINANCE",
     "ASIANPAINT", "MARUTI", "SUNPHARMA", "TITAN", "ULTRACEMCO", "WIPRO",
@@ -16,46 +20,18 @@ EMERGENCY_FALLBACK_UNIVERSE = [
     "TATACONSUM", "TRENT", "DLF", "HAVELLS", "SIEMENS", "PIDILITIND",
 ]
 
+
 def fetch_stock_universe():
-    """
-    Fetches the Nifty 500 stock symbols from reliable sources.
-    Returns a clean list of stock ticker symbols.
-    """
     try:
-        url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        
-        df = pd.read_csv(url, storage_options={"User-Agent": headers["User-Agent"]})
-        
-        if "Symbol" in df.columns:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        resp = requests.get(NIFTY500_CSV_URL, headers=headers, timeout=15)
+        if resp.status_code == 200 and "Symbol" in resp.text:
+            df = pd.read_csv(io.StringIO(resp.text))
             symbols = df["Symbol"].dropna().astype(str).str.strip().tolist()
-            symbols = [s.upper() for s in symbols if s]
-            
-            # FIXED: Corrected parentheses for length check
             if len(symbols) > 100:
-                print(f"Successfully loaded {len(symbols)} symbols from NSE Nifty 500 index.")
+                print(f"  Loaded live NIFTY 500 list ({len(symbols)} symbols).")
                 return symbols
     except Exception as e:
-        print(f"Warning: Could not fetch live Nifty 500 list from NSE archive ({e}). Using backup source.")
-
-    # Alternative backup endpoint via GitHub raw mirror
-    try:
-        alt_url = "https://raw.githubusercontent.com/raghavtwenty/swagger-nse-feed/main/nifty_500.csv"
-        df_alt = pd.read_csv(alt_url)
-        symbol_col = "Symbol" if "Symbol" in df_alt.columns else df_alt.columns[0]
-        symbols = df_alt[symbol_col].dropna().astype(str).str.strip().tolist()
-        symbols = [s.upper() for s in symbols if s]
-        if len(symbols) > 100:
-            print(f"Successfully loaded {len(symbols)} symbols from backup mirror.")
-            return symbols
-    except Exception:
-        pass
-
-    print("Using emergency fallback universe list.")
-    return EMERGENCY_FALLBACK_UNIVERSE
-
-if __name__ == "__main__":
-    univ = fetch_stock_universe()
-    print(f"Total universe count: {len(univ)}")
+        print(f"  Live universe fetch failed ({e}), using fallback list.")
+    print(f"  Using fallback universe ({len(FALLBACK_UNIVERSE)} symbols).")
+    return FALLBACK_UNIVERSE
