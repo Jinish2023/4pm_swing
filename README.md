@@ -7,6 +7,7 @@ PROFIT FACTOR: 1.80
 EXPECTANCY PER TRADE: 3.87%
 ==================================================
 
+"only take trades when Nifty 500 is above its own 50-day or 200-day average"
 
 # Swing Strategy Scanner + Tracker
 
