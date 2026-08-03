@@ -1,3 +1,13 @@
+==================================================
+UNIVERSE: 473 tickers with valid setups
+TOTAL TRADES: 3783
+WIN RATE: 50.9%
+AVG WIN: 17.15%    AVG LOSS: -9.88%
+PROFIT FACTOR: 1.80
+EXPECTANCY PER TRADE: 3.87%
+==================================================
+
+
 # Swing Strategy Scanner + Tracker
 
 Automates the fib-retracement + order-block/base breakout swing strategy:
