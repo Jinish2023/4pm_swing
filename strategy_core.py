@@ -13,9 +13,31 @@ returns a signal if the breakout happens on the VERY LAST bar of the
 dataframe (i.e. today), so the scanner only flags fresh, actionable
 setups -- not stale historical ones.
 """
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import numpy as np
 import pandas as pd
 from scipy.signal import argrelextrema
+
+IST = ZoneInfo("Asia/Kolkata")
+MARKET_CLOSE_HOUR = 15
+MARKET_CLOSE_MINUTE = 35  # 5 min buffer after NSE's actual 15:30 close
+
+
+def market_session_finalized() -> bool:
+    """
+    Returns True only once today's NSE session data should be finalized
+    (i.e. it's safe to trust Close/Volume as real end-of-day values).
+    Guards scanner.py and tracker.py from acting on partial intraday bars.
+    """
+    now_ist = datetime.now(IST)
+    if now_ist.weekday() >= 5:  # Saturday/Sunday
+        return True  # no live session to worry about corrupting
+    close_time = now_ist.replace(hour=MARKET_CLOSE_HOUR, minute=MARKET_CLOSE_MINUTE,
+                                  second=0, microsecond=0)
+    return now_ist >= close_time
+
 
 CONFIG = dict(
     pivot_order=5,
