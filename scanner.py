@@ -11,7 +11,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from strategy_core import CONFIG, find_live_signal
+from strategy_core import CONFIG, find_live_signal, market_session_finalized
 
 RESULTS_PATH = Path("results.csv")
 TICKERS_PATH = Path("tickers.csv")
@@ -57,6 +57,13 @@ def already_flagged_recently(results, ticker, today, dedup_days):
 
 
 def main():
+    if not market_session_finalized():
+        print("Refusing to scan: today's NSE session isn't finalized yet "
+              "(before 3:35pm IST on a weekday). Running now would read partial "
+              "intraday Close/Volume and could flag a false breakout that locks "
+              "in via the dedup rule. Run this again after market close.")
+        return
+
     cfg = CONFIG
     results = load_results()
     tickers = load_tickers()

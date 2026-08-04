@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from strategy_core import CONFIG
+from strategy_core import CONFIG, market_session_finalized
 
 RESULTS_PATH = Path("results.csv")
 
@@ -32,6 +32,13 @@ def fetch_latest_bar(ticker):
 
 
 def main():
+    if not market_session_finalized():
+        print("Refusing to track: today's NSE session isn't finalized yet "
+              "(before 3:35pm IST on a weekday). Entry-fills are already "
+              "date-guarded and won't fire early, but run this after market "
+              "close anyway so stop/target checks use the full day's range.")
+        return
+
     cfg = CONFIG
     if not RESULTS_PATH.exists():
         print("No results.csv found -- run the scanner first.")
