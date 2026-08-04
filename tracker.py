@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from strategy_core import CONFIG, market_session_finalized
+from strategy_core import CONFIG
 
 RESULTS_PATH = Path("results.csv")
 
@@ -32,13 +32,6 @@ def fetch_latest_bar(ticker):
 
 
 def main():
-    if not market_session_finalized():
-        print("Refusing to track: today's NSE session isn't finalized yet "
-              "(before 3:35pm IST on a weekday). Entry-fills are already "
-              "date-guarded and won't fire early, but run this after market "
-              "close anyway so stop/target checks use the full day's range.")
-        return
-
     cfg = CONFIG
     if not RESULTS_PATH.exists():
         print("No results.csv found -- run the scanner first.")
@@ -95,10 +88,20 @@ def main():
             results.at[idx, "Exit"] = exit_price
             results.at[idx, "Outcome"] = outcome
             results.at[idx, "Status"] = "Closed"
+            results.at[idx, "CurrentPrice"] = exit_price
             results.at[idx, "Return"] = round(exit_price - entry_price, 2)
             results.at[idx, "Return%"] = round((exit_price - entry_price) / entry_price * 100, 2)
             changed = True
             print(f"Closed: {ticker} -> {outcome} @ {exit_price:.2f}")
+        else:
+            # Still open: CurrentPrice is today's close (per-position tracking
+            # runs once daily, after market close -- never intraday).
+            close_price = round(float(row["Close"]), 2)
+            results.at[idx, "CurrentPrice"] = close_price
+            results.at[idx, "Return"] = round(close_price - entry_price, 2)
+            results.at[idx, "Return%"] = round((close_price - entry_price) / entry_price * 100, 2)
+            changed = True
+            print(f"Marked: {ticker} -> CurrentPrice {close_price:.2f}")
 
     if changed:
         results.to_csv(RESULTS_PATH, index=False)
