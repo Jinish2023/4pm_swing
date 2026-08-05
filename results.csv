@@ -1,1 +1,2 @@
 SerialNo,ScanDate,Ticker,Status,Strategy,EntryDate,Entry,StopLoss,Target,ExitDate,Exit,Outcome,CurrentPrice,LastTracked,Return,Return%,Taken,LegLow,LegHigh,BaseLow,BaseHigh
+1,2026-08-05,AUROPHARMA.NS,Pending,Impulse leg +17.7% from 2026-06-15 (Rs1391.00) to 2026-07-03 (Rs1636.80). Pulled back to 50.8% fib zone on 2026-07-24 (Rs1512.00). Base formed 2026-07-24 to 2026-08-03 (Rs1512.00-Rs1607.50). Breakout confirmed 2026-08-05 at Rs1613.40 with volume above 20-day avg.,,,1512.0,1859.2,,,,,,,,No,1391.0,1636.8,1512.0,1607.5
