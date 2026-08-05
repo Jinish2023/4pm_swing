@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from strategy_core import CONFIG
+from strategy_core import CONFIG, COLUMNS
 
 RESULTS_PATH = Path("results.csv")
 
@@ -89,6 +89,7 @@ def main():
             results.at[idx, "Outcome"] = outcome
             results.at[idx, "Status"] = "Closed"
             results.at[idx, "CurrentPrice"] = exit_price
+            results.at[idx, "LastTracked"] = bar_date
             results.at[idx, "Return"] = round(exit_price - entry_price, 2)
             results.at[idx, "Return%"] = round((exit_price - entry_price) / entry_price * 100, 2)
             changed = True
@@ -98,12 +99,14 @@ def main():
             # runs once daily, after market close -- never intraday).
             close_price = round(float(row["Close"]), 2)
             results.at[idx, "CurrentPrice"] = close_price
+            results.at[idx, "LastTracked"] = bar_date
             results.at[idx, "Return"] = round(close_price - entry_price, 2)
             results.at[idx, "Return%"] = round((close_price - entry_price) / entry_price * 100, 2)
             changed = True
             print(f"Marked: {ticker} -> CurrentPrice {close_price:.2f}")
 
     if changed:
+        results = results.reindex(columns=COLUMNS)
         results.to_csv(RESULTS_PATH, index=False)
         print(f"\nSaved updates to {RESULTS_PATH}")
     else:

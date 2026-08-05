@@ -11,17 +11,10 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-from strategy_core import CONFIG, find_live_signal
+from strategy_core import CONFIG, COLUMNS, find_live_signal
 
 RESULTS_PATH = Path("results.csv")
 TICKERS_PATH = Path("tickers.csv")
-
-COLUMNS = [
-    "SerialNo", "ScanDate", "Ticker", "Status", "Strategy",
-    "EntryDate", "Entry", "StopLoss", "Target",
-    "ExitDate", "Exit", "Outcome", "CurrentPrice", "Return", "Return%", "Taken",
-    "LegLow", "LegHigh", "BaseLow", "BaseHigh",
-]
 
 
 def load_results():
@@ -99,6 +92,7 @@ def main():
                 "Exit": None,
                 "Outcome": None,
                 "CurrentPrice": None,
+                "LastTracked": None,
                 "Return": None,
                 "Return%": None,
                 "Taken": "No",
@@ -114,11 +108,13 @@ def main():
 
     if new_rows:
         results = pd.concat([results, pd.DataFrame(new_rows)], ignore_index=True)
+        results = results.reindex(columns=COLUMNS)
         results.to_csv(RESULTS_PATH, index=False)
         print(f"\nAdded {len(new_rows)} new candidates. Saved to {RESULTS_PATH}")
     else:
         print("\nNo new candidates found today.")
         if not RESULTS_PATH.exists():
+            results = results.reindex(columns=COLUMNS)
             results.to_csv(RESULTS_PATH, index=False)
 
 
