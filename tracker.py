@@ -38,8 +38,11 @@ def main():
         return
 
     results = pd.read_csv(RESULTS_PATH)
-    for col in ["ScanDate", "EntryDate", "ExitDate"]:
-        results[col] = pd.to_datetime(results[col], errors="coerce")
+    for col in ["ScanDate", "EntryDate", "ExitDate", "LastTracked"]:
+        if col in results.columns:
+            results[col] = pd.to_datetime(results[col], errors="coerce")
+        else:
+            results[col] = pd.NaT
 
     changed = False
 
