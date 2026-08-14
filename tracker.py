@@ -44,6 +44,16 @@ def main():
         else:
             results[col] = pd.NaT
 
+    # Text columns that may be entirely blank when read from CSV -- pandas
+    # would otherwise infer float64 for an all-NaN column and then reject
+    # later string writes (e.g. Outcome = "Stop") with a TypeError. Casting
+    # to object here keeps everything else unchanged.
+    for col in ["Outcome", "Status", "Taken"]:
+        if col in results.columns:
+            results[col] = results[col].astype(object)
+        else:
+            results[col] = None
+
     changed = False
 
     # 1. Fill pending candidates at the next available day's open
